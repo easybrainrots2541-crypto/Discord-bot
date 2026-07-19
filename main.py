@@ -218,8 +218,8 @@ async def chat(interaction: discord.Interaction, prompt: str):
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4.1-mini"",
-            messages=[{"role": "user", "content": prompt}]
+        model="gpt-4-mini"",
+            messages=[{"role": "user", "content": prompt}] 
         )
 
         await interaction.followup.send(response.choices[0].message.content)
