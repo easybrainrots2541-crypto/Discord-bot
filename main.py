@@ -9,7 +9,9 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-LOG_CHANNEL_NAME = "message-logs"
+DELETED_LOG_CHANNEL = "deleted-logs"
+EDITED_LOG_CHANNEL = "edited-logs"
+CHAT_LOG_CHANNEL = "chat-logs"
 
 @bot.event
 async def on_ready():
@@ -24,15 +26,21 @@ async def on_ready():
     except Exception as e:
         print(e)
 
-def get_log_channel(guild):
-    return discord.utils.get(guild.text_channels, name=LOG_CHANNEL_NAME)
+def get_deleted_log_channel(guild):
+    return discord.utils.get(guild.text_channels, name=DELETED_LOG_CHANNEL)
+
+def get_edited_log_channel(guild):
+    return discord.utils.get(guild.text_channels, name=EDITED_LOG_CHANNEL)
+
+def get_chat_log_channel(guild):
+    return discord.utils.get(guild.text_channels, name=CHAT_LOG_CHANNEL)
 
 @bot.event
 async def on_message_delete(message):
     if message.author.bot or message.guild is None:
         return
 
-    channel = get_log_channel(message.guild)
+    channel = get_deleted_log_channel(message.guild)
     if channel:
         embed = discord.Embed(
             title="🗑️ Message Deleted",
@@ -41,6 +49,14 @@ async def on_message_delete(message):
         embed.add_field(name="Author", value=message.author.mention, inline=False)
         embed.add_field(name="Channel", value=message.channel.mention, inline=False)
         embed.add_field(name="Content", value=message.content or "*No text*", inline=False)
+
+        if message.attachments:
+            embed.add_field(
+                name="Attachments",
+                value="\n".join(a.url for a in message.attachments),
+                inline=False
+            )
+
         await channel.send(embed=embed)
 
 @bot.event
@@ -51,7 +67,7 @@ async def on_message_edit(before, after):
     if before.content == after.content:
         return
 
-    channel = get_log_channel(before.guild)
+    channel = get_edited_log_channel(before.guild)
     if channel:
         embed = discord.Embed(
             title="✏️ Message Edited",
@@ -61,6 +77,7 @@ async def on_message_edit(before, after):
         embed.add_field(name="Channel", value=before.channel.mention, inline=False)
         embed.add_field(name="Before", value=before.content or "*No text*", inline=False)
         embed.add_field(name="After", value=after.content or "*No text*", inline=False)
+
         await channel.send(embed=embed)
 
 # !ping
@@ -87,6 +104,41 @@ async def slash_hello(interaction: discord.Interaction):
 
 @bot.event
 async def on_message(message):
+    if message.author.bot or message.guild is None:
+        return
+
+    log_channel = get_chat_log_channel(message.guild)
+
+    if log_channel:
+        embed = discord.Embed(
+            title="💬 Message Sent",
+            color=discord.Color.blue()
+        )
+        embed.add_field(
+            name="Author",
+            value=f"{message.author.mention} (`{message.author}`)",
+            inline=False
+        )
+        embed.add_field(
+            name="Channel",
+            value=message.channel.mention,
+            inline=False
+        )
+        embed.add_field(
+            name="Message",
+            value=message.content or "*No text*",
+            inline=False
+        )
+
+        if message.attachments:
+            embed.add_field(
+                name="Attachments",
+                value="\n".join(a.url for a in message.attachments),
+                inline=False
+            )
+
+        await log_channel.send(embed=embed)
+
     await bot.process_commands(message)
 
 bot.run(TOKEN)
