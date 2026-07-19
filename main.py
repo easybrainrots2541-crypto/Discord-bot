@@ -218,7 +218,7 @@ async def chat(interaction: discord.Interaction, prompt: str):
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4-mini",
+            model="gpt-4.1-mini",
             messages=[{"role": "user", "content": prompt}]
         )
 
