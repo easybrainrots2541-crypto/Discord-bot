@@ -41,7 +41,8 @@ def get_edited_log_channel(guild):
 
 def get_chat_log_channel(guild):
     return discord.utils.get(guild.text_channels, name=CHAT_LOG_CHANNEL)
-    @bot.event
+
+@bot.event
 async def on_message_delete(message):
     if message.author.bot or message.guild is None:
         return
@@ -90,7 +91,8 @@ async def on_message_edit(before, after):
         embed.add_field(name="After", value=after.content or "*No text*", inline=False)
 
         await channel.send(embed=embed)
-        # !ping
+
+# !ping
 @bot.command()
 async def ping(ctx):
     await ctx.send("🏓 Pong!")
@@ -171,7 +173,8 @@ async def slash_botinfo(interaction: discord.Interaction):
         f"🤖 Bot: {bot.user.name}\n"
         f"📡 Ping: {round(bot.latency * 1000)} ms"
     )
-    # !say
+
+# !say
 @bot.command()
 async def say(ctx, *, message):
     await ctx.send(message)
@@ -214,16 +217,17 @@ async def chat(interaction: discord.Interaction, prompt: str):
     await interaction.response.defer()
 
     try:
-        response = client.responses.create(
-            model="gpt-4.1-mini",
-            input=prompt
+        response = client.chat.completions.create(
+            model="gpt-4-mini",
+            messages=[{"role": "user", "content": prompt}]
         )
 
-        await interaction.followup.send(response.output_text)
+        await interaction.followup.send(response.choices[0].message.content)
 
     except Exception as e:
-        await interaction.followup.send(f"❌ AI Error:\n{e}")e
-        @bot.event
+        await interaction.followup.send(f"❌ AI Error:\n{e}")
+
+@bot.event
 async def on_message(message):
     if message.author.bot or message.guild is None:
         return
@@ -266,3 +270,4 @@ async def on_message(message):
     await bot.process_commands(message)
 
 bot.run(TOKEN)
+
