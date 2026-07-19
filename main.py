@@ -18,6 +18,12 @@ async def on_ready():
         activity=discord.Game(name="Building my first bot 🚀")
     )
 
+    try:
+        synced = await bot.tree.sync()
+        print(f"Synced {len(synced)} slash commands!")
+    except Exception as e:
+        print(e)
+
 def get_log_channel(guild):
     return discord.utils.get(guild.text_channels, name=LOG_CHANNEL_NAME)
 
@@ -57,13 +63,27 @@ async def on_message_edit(before, after):
         embed.add_field(name="After", value=after.content or "*No text*", inline=False)
         await channel.send(embed=embed)
 
+# !ping
 @bot.command()
 async def ping(ctx):
     await ctx.send("🏓 Pong!")
 
+# /ping
+@bot.tree.command(name="ping", description="Check if the bot is online.")
+async def slash_ping(interaction: discord.Interaction):
+    await interaction.response.send_message("🏓 Pong!")
+
+# !hello
 @bot.command()
 async def hello(ctx):
     await ctx.send(f"Hello, {ctx.author.mention}! 👋")
+
+# /hello
+@bot.tree.command(name="hello", description="Say hello.")
+async def slash_hello(interaction: discord.Interaction):
+    await interaction.response.send_message(
+        f"Hello, {interaction.user.mention}! 👋"
+    )
 
 @bot.event
 async def on_message(message):
