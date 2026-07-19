@@ -2,8 +2,12 @@ import os
 import discord
 from discord.ext import commands
 from discord import app_commands
+from openai import OpenAI
 
 TOKEN = os.getenv("DISCORD_TOKEN")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -37,8 +41,7 @@ def get_edited_log_channel(guild):
 
 def get_chat_log_channel(guild):
     return discord.utils.get(guild.text_channels, name=CHAT_LOG_CHANNEL)
-
-@bot.event
+    @bot.event
 async def on_message_delete(message):
     if message.author.bot or message.guild is None:
         return
@@ -64,6 +67,7 @@ async def on_message_delete(message):
 
         await channel.send(embed=embed)
 
+
 @bot.event
 async def on_message_edit(before, after):
     if before.author.bot or before.guild is None:
@@ -86,8 +90,7 @@ async def on_message_edit(before, after):
         embed.add_field(name="After", value=after.content or "*No text*", inline=False)
 
         await channel.send(embed=embed)
-
-# !ping
+        # !ping
 @bot.command()
 async def ping(ctx):
     await ctx.send("🏓 Pong!")
@@ -149,7 +152,9 @@ async def avatar(ctx):
 # /avatar
 @bot.tree.command(name="avatar", description="Shows your avatar.")
 async def slash_avatar(interaction: discord.Interaction):
-    await interaction.response.send_message(interaction.user.display_avatar.url)
+    await interaction.response.send_message(
+        interaction.user.display_avatar.url
+    )
 
 # !botinfo
 @bot.command()
@@ -166,17 +171,17 @@ async def slash_botinfo(interaction: discord.Interaction):
         f"🤖 Bot: {bot.user.name}\n"
         f"📡 Ping: {round(bot.latency * 1000)} ms"
     )
-
-# !say
+    # !say
 @bot.command()
 async def say(ctx, *, message):
     await ctx.send(message)
 
 # /say
 @bot.tree.command(name="say", description="Make the bot repeat a message.")
+@app_commands.describe(message="The message for the bot to say")
 async def slash_say(interaction: discord.Interaction, message: str):
     await interaction.response.send_message(message)
-    
+
 # !clear
 @bot.command()
 @commands.has_permissions(manage_messages=True)
@@ -202,7 +207,23 @@ async def slash_clear(interaction: discord.Interaction, amount: int):
         ephemeral=True
     )
 
-@bot.event
+# /chat
+@bot.tree.command(name="chat", description="Talk with ChatGPT")
+@app_commands.describe(prompt="Ask anything")
+async def chat(interaction: discord.Interaction, prompt: str):
+    await interaction.response.defer()
+
+    try:
+        response = client.responses.create(
+            model="gpt-4.1-mini",
+            input=prompt
+        )
+
+        await interaction.followup.send(response.output_text)
+
+    except Exception as e:
+        await interaction.followup.send(f"❌ AI Error:\n{e}")e
+        @bot.event
 async def on_message(message):
     if message.author.bot or message.guild is None:
         return
