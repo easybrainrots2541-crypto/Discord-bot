@@ -2,12 +2,12 @@ import os
 import discord
 from discord.ext import commands
 from discord import app_commands
-from openai import OpenAI
+from groq import Groq
 
 TOKEN = os.getenv("DISCORD_TOKEN")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
-client = OpenAI(api_key=OPENAI_API_KEY)
+client = Groq(api_key=GROQ_API_KEY)
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -40,9 +40,7 @@ def get_edited_log_channel(guild):
     return discord.utils.get(guild.text_channels, name=EDITED_LOG_CHANNEL)
 
 def get_chat_log_channel(guild):
-    return discord.utils.get(guild.text_channels, name=CHAT_LOG_CHANNEL)
-
-@bot.event
+    return discord.utils.get(guild.text_channels, name=CHAT_LOG_CHANNEL)@bot.event
 async def on_message_delete(message):
     if message.author.bot or message.guild is None:
         return
@@ -112,9 +110,7 @@ async def hello(ctx):
 async def slash_hello(interaction: discord.Interaction):
     await interaction.response.send_message(
         f"Hello, {interaction.user.mention}! 👋"
-    )
-
-# !server
+    )# !server
 @bot.command()
 async def server(ctx):
     await ctx.send(
@@ -208,21 +204,92 @@ async def slash_clear(interaction: discord.Interaction, amount: int):
     await interaction.response.send_message(
         f"🧹 Deleted {amount} messages.",
         ephemeral=True
-    )
-
-# /chat
-@bot.tree.command(name="chat", description="Talk with ChatGPT")
+    )# /chat
+@bot.tree.command(name="chat", description="Talk with AI")
 @app_commands.describe(prompt="Ask anything")
 async def chat(interaction: discord.Interaction, prompt: str):
     await interaction.response.defer()
 
     try:
         response = client.chat.completions.create(
-        model="gpt-4.1-mini",
-            messages=[{"role": "user", "content": prompt}] 
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
         )
 
-        await interaction.followup.send(response.choices[0].message.content)
+        await interaction.followup.send(
+            response.choices[0].message.content
+        )
+
+    except Exception as e:
+        await interaction.followup.send(f"❌ AI Error:\n{e}")
+
+@bot.event
+async def on_message(message):
+    if message.author.bot or message.guild is None:
+        return
+
+    log_channel = get_chat_log_channel(message.guild)
+
+    if log_channel:
+        embed = discord.Embed(
+            title="💬 Message Sent",
+            color=discord.Color.blue()
+        )
+
+        embed.add_field(
+            name="Author",
+            value=f"{message.author.mention} (`{message.author}`)",
+            inline=False
+        )
+
+        embed.add_field(
+            name="Channel",
+            value=message.channel.mention,
+            inline=False
+        )
+
+        embed.add_field(
+            name="Message",
+            value=message.content or "*No text*",
+            inline=False
+        )
+
+        if message.attachments:
+            embed.add_field(
+                name="Attachments",
+                value="\n".join(a.url for a in message.attachments),
+                inline=False
+            )
+
+        await log_channel.send(embed=embed)
+
+    await bot.process_commands(message)
+
+bot.run(TOKEN)# /chat
+@bot.tree.command(name="chat", description="Talk with AI")
+@app_commands.describe(prompt="Ask anything")
+async def chat(interaction: discord.Interaction, prompt: str):
+    await interaction.response.defer()
+
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+        )
+
+        await interaction.followup.send(
+            response.choices[0].message.content
+        )
 
     except Exception as e:
         await interaction.followup.send(f"❌ AI Error:\n{e}")
@@ -270,4 +337,3 @@ async def on_message(message):
     await bot.process_commands(message)
 
 bot.run(TOKEN)
-
